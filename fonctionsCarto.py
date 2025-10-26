@@ -1,25 +1,17 @@
 # -*- coding:utf-8 -*-
 """
 Module de fonctions utilitaires pour QGIS 3.x+
-Compatible Qt5 et Qt6
+Compatible Qt5 et Qt6 via qgis.PyQt
+
+Nécessite d'être exécuté dans l'environnement QGIS
 """
 import time  # pour le temps de calcul
 
-# Import compatible Qt5/Qt6 via qgis
-try:
-    from qgis.PyQt.QtWidgets import *
-    from qgis.PyQt.QtGui import *
-    from qgis.PyQt.QtCore import *
-except ImportError:
-    # Fallback pour anciennes versions
-    try:
-        from PyQt5.QtWidgets import *
-        from PyQt5.QtGui import *
-        from PyQt5.QtCore import *
-    except ImportError:
-        from PyQt6.QtWidgets import *
-        from PyQt6.QtGui import *
-        from PyQt6.QtCore import *
+# Imports Qt via qgis.PyQt (méthode recommandée QGIS 3.x)
+# S'adapte automatiquement à Qt5 ou Qt6 selon la version de QGIS
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtCore import *
 
 
 def layerArea(polygonLayer):
