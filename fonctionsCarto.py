@@ -41,14 +41,30 @@ def attributesSummary(layer, columnNumber):
         columnNumber: Column index to analyze
 
     Returns:
-        tuple: (min, max, sum, zeroValues)
+        tuple: (min, max, sum, zeroValues) or None if column index is invalid
 
     Usage:
         (max_val, min_val, sum_val, missing) = attributesSummary(layer, columnNumber)
     """
+    # Vérifier que la couche a des champs
+    fields = layer.fields()
+    if columnNumber < 0 or columnNumber >= len(fields):
+        print(f"Erreur: L'index de colonne {columnNumber} est invalide. La couche a {len(fields)} champs (0 à {len(fields)-1}).")
+        return None, None, None, None
+
     features = layer.getFeatures()
-    absoluteValuesList = [abs(element.attributes()[columnNumber])
-                          for element in features if element.attributes()[columnNumber]]
+    absoluteValuesList = []
+
+    for element in features:
+        attrs = element.attributes()
+        # Vérifier que l'élément a assez d'attributs et que la valeur n'est pas nulle
+        if len(attrs) > columnNumber and attrs[columnNumber] is not None:
+            try:
+                absoluteValuesList.append(abs(attrs[columnNumber]))
+            except (TypeError, ValueError):
+                # Ignorer les valeurs non numériques
+                pass
+
     lenList = len(absoluteValuesList)
 
     if lenList > 0:
@@ -69,12 +85,37 @@ if __name__ == "__main__":
     import qgis.utils
     coucheActive = qgis.utils.iface.mapCanvas().currentLayer()
 
-    temps = time.perf_counter()
-    surfaceCoucheKm2 = layerArea(coucheActive) / 1000000
-    print(f"La surface de {coucheActive.name()} est de {surfaceCoucheKm2:.2f} km2")
-    print(f"Temps d'exécution : {time.perf_counter() - temps:.6f} seconde(s)\n")
+    if coucheActive is None:
+        print("Erreur: Aucune couche active sélectionnée")
+    else:
+        print(f"=== Analyse de la couche : {coucheActive.name()} ===\n")
 
-    temps = time.perf_counter()
-    stats = attributesSummary(coucheActive, 11)
-    print(f"Statistiques colonne 11: {stats}")
-    print(f"Temps d'exécution : {time.perf_counter() - temps:.6f} seconde(s)\n")
+        # Afficher les champs disponibles
+        fields = coucheActive.fields()
+        print(f"Nombre de champs : {len(fields)}")
+        print("Champs disponibles :")
+        for idx, field in enumerate(fields):
+            print(f"  [{idx}] {field.name()} ({field.typeName()})")
+        print()
+
+        # Test de la fonction layerArea pour les couches de polygones
+        if coucheActive.geometryType() == 2:  # 2 = Polygon
+            temps = time.perf_counter()
+            surfaceCoucheKm2 = layerArea(coucheActive) / 1000000
+            print(f"Surface totale : {surfaceCoucheKm2:.2f} km²")
+            print(f"Temps d'exécution : {time.perf_counter() - temps:.6f} seconde(s)\n")
+        else:
+            print("La couche n'est pas de type polygone, calcul de surface ignoré.\n")
+
+        # Test de la fonction attributesSummary sur la première colonne numérique
+        numeric_types = ['Integer', 'Integer64', 'Real', 'Double']
+        for idx, field in enumerate(fields):
+            if field.typeName() in numeric_types:
+                temps = time.perf_counter()
+                stats = attributesSummary(coucheActive, idx)
+                print(f"Statistiques pour '{field.name()}' (colonne {idx}):")
+                print(f"  Min: {stats[0]}, Max: {stats[1]}, Somme: {stats[2]}, Valeurs manquantes: {stats[3]}")
+                print(f"  Temps d'exécution : {time.perf_counter() - temps:.6f} seconde(s)\n")
+                break
+        else:
+            print("Aucune colonne numérique trouvée pour les statistiques.")
